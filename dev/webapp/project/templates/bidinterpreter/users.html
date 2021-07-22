@@ -1,0 +1,260 @@
+{% extends 'global/base.html' %}
+{% load render_table from django_tables2 %}
+{% load humanize %}
+
+{% block content %}
+
+<!-- <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
+<!------ Include the above in your HEAD tag ---------->
+
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="#" crossorigin="anonymous">
+
+<div class="container-fluid">
+	<div class="row">
+        {% include 'global/deal_nav.html' %}
+		<div class="col-md-9">
+		    <div class="card">
+		        <div class="card-body">
+
+		            <div class="row">
+		                <div class="col-md-12">
+
+                            <div class="d-flex justify-content-between">
+                                <div class="col-sm">
+                                    <h2><i class="fas fa-users"></i><small class="text-muted"> Deal Users</small></h2>
+                                </div>
+                                <div class="mr-auto">
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"><i class="fas fa-door-open"></i> Invite User</button>
+                                </div>
+                            </div>
+
+                            {% if group_users %}
+                                {% render_table table %}
+                            {% else %}
+                                No users invited to your deal yet!
+                            {% endif %}
+                            <form class="form-inline pull-right">
+                                <div class="form-group mb-2 ml-2">
+                                    <label id="action-label" for="action" class="mr-2">With selected:</label>
+                                    <select name="action" id="action" class="form-control">
+                                        <option value="remove">Remove</option>
+                                        <option value="update_view">Change to "View Only"</option>
+                                        <option value="update_bid">Change to "Can Bid"</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-2 ml-2 mr-1"><button class="btn btn-danger" id="action-button" type="button" data-toggle="modal"  data-target="#confirm"><i class="fas fa-wrench"></i> </button></div>
+                            </form>
+		                </div>
+		            </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <div class="col-sm">
+                                    <h2><i class="fas fa-envelope"></i><small class="text-muted"> Invited Users</small></h2>
+                                </div>
+                            </div>
+                            
+                            {% if has_invites %}
+                                {% render_table invite_table %}
+                            {% else %}
+                                No users invited to your deal yet!
+                            {% endif %}
+                            
+                        </div>
+                    </div>
+		        </div>
+		    </div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel"><i class="fa fa-door-open"></i> Invite User</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+            <form> 
+
+                <span id="csfr">{% csrf_token %}</span>
+                <div class="form-row align-items-center">
+                    <ul class="nav nav-tabs" id="users" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="username-tab" data-toggle="tab" href="#username-content" role="tab" aria-controls="username-content" aria-selected="true"><i class="fa fa-user"></i> Username</label></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="email-tab" data-toggle="tab" href="#email-content" role="tab" aria-controls="email-content" aria-selected="false"><i class="fa fa-envelope-square"></i> Email</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="tab-content" style="clear: both;">
+                        <div class="tab-pane fade show active" id="username-content" role="tabpanel" aria-labelledby="home-tab" style="margin-top: 10px;">
+                            <input type="text" class="form-control" id="username" aria-describedby="usernameHelp" placeholder="ie: micheal_jensen">
+                            <small id="usernameHelp" class="form-text text-muted">Enter the platform username of the user you would like to add to your deal.</small>
+                        </div>
+                        <div class="tab-pane fade" id="email-content" role="tabpanel" aria-labelledby="email-tab" style="margin-top: 10px;">
+                            <input type="text" class="form-control" id="email" aria-describedby="emailHelp" placeholder="ie: david@yerrington.net">
+                            <small id="emailHelp" class="form-text text-muted">Enter a valid email address to invite someone to signup then bid on your deal.</small>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="user_type" class="mt-3"><i class="fa fa-lock"></i> Permission</label>
+                        <select class="form-control" name="user_type" id="user_type"><option value="0">View Only</option><option value="1">Can Bid</option></select>
+                        <small id="user_type_help" class="form-text text-muted">Select the level of permission for user.</small>
+                    </div>
+                </div>
+                <div class="text-center text-danger" id="invite-message"></div>
+            </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="close-button">Close</button>
+        <button type="button" class="btn btn-primary" id="invite-button"><span><i class="fa fa-door-open" id="status"></i></span> Invite</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" tabindex="-1" role="dialog" id="confirm">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to remove these users from your deal?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="delete"><i id="remove-user-icon" class="fa fa-trash-alt"></i> <span id="confirm-button">Remove User</span></button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="/static/css/bidinterpreter/user_management.css">
+
+.bid-table { margin-top: 20px; }
+.bid-table th a { color: white; }
+.panel > .list-group
+{
+    margin-bottom: 0;
+}
+.panel > .list-group .list-group-item
+{
+    border-width: 1px 0;
+}
+.panel > .list-group .list-group-item:first-child
+{
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+}
+.panel > .list-group .list-group-item:last-child
+{
+    border-bottom: 0;
+}
+.panel-heading + .list-group .list-group-item:first-child
+{
+    border-top-width: 0;
+}
+.panel-default .list-group-item.active
+{
+    color: #000;
+    background-color: #DDD;
+    border-color: #DDD;
+}
+.panel-primary .list-group-item.active
+{
+    color: #FFF;
+    background-color: #428BCA;
+    border-color: #428BCA;
+}
+.panel-success .list-group-item.active
+{
+    color: #3C763D;
+    background-color: #DFF0D8;
+    border-color: #D6E9C6;
+}
+.panel-info .list-group-item.active
+{
+    color: #31708F;
+    background-color: #D9EDF7;
+    border-color: #BCE8F1;
+}
+.panel-warning .list-group-item.active
+{
+    color: #8A6D3B;
+    background-color: #FCF8E3;
+    border-color: #FAEBCC;
+}
+.panel-danger .list-group-item.active
+{
+    color: #A94442;
+    background-color: #F2DEDE;
+    border-color: #EBCCD1;
+}
+.panel a.list-group-item.active:hover, a.list-group-item.active:focus
+{
+    color: #000;
+    background-color: #DDD;
+    border-color: #DDD;
+}
+ .image { 
+     position: relative; 
+     z-index: 2; 
+     margin: auto; 
+     width: 88px; 
+     height: 88px; 
+     border: 8px solid white; 
+     line-height: 88px; 
+     border-radius: 50%; 
+     background: #E0E0E0; 
+     vertical-align: middle; 
+}
+.image > i { font-size: 36px !important; color: #fff !important; margin-top: .45em;}
+
+
+
+#profile-pic-demo .drop-help-text {
+  display: none;
+}
+#profile-pic-demo .is-drag-over .drop-help-text {
+  display: block;
+}
+#profile-pic-demo .profile-pic-upload-block {
+  border: 2px dashed transparent;
+  padding: 20px;
+  padding-top: 0;
+}
+
+#profile-pic-demo .is-drag-over.profile-pic-upload-block {
+  border-color: #AAA;
+}
+#profile-pic-demo .vue-file-agent {
+  width: 180px;
+  float: left;
+  margin: 0 15px 5px 0;
+  border: 0;
+  box-shadow: none;
+}
+
+
+{% endblock %}
+
+{% block additional_js %}
+<script src="/static/js/bidinterpreter/user_management.js"></script>
+{% endblock %}

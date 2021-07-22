@@ -1,0 +1,22 @@
+{% if messages %}
+    <div class="col-lg-3 color03">
+        <ul class="messages">
+            {% for message in messages %}
+                {% if message.tags %}
+                <li class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+{% for field in form %}
+    <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+            <span class="text-danger small">{{ field.errors }}</span>
+        </div>
+        {% if field.field.widget.input_type != "hidden" %}
+            <label class="control-label col-sm-2">{{ field.label_tag }}</label>
+        {% endif %}
+        <div class="col-sm-10">{{ field }}</div>
+    </div>
+{% endfor %}

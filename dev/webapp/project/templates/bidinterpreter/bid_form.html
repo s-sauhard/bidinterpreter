@@ -1,0 +1,16 @@
+{% extends 'global/base.html' %}
+{% load static %}
+
+{% block headcode %}
+{% endblock headcode %}
+
+{% block content %}
+<p>&nbsp;</p>
+<form class="form-horizontal bidinterpreter-form" action = "" method="post" enctype="multipart/form-data">
+    <div class="col-sm-offset-2 col-sm-10">
+    {% csrf_token %}
+    <!--{% include 'global/form_template.html' %}-->
+    {{ form.as_p }}
+    </div>
+</form>
+{% endblock content %}

@@ -1,0 +1,318 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify jazzmin custom_tags %}
+
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'vendor/select2/css/select2.min.css' %}">
+    <style>
+        .words a:link {
+            text-decoration: none !important;
+            color: #000 !important;
+        }
+        .words a {
+            background-color: #FFF;
+            padding: 1px;
+            border-style: 2px solid;
+            text-decoration: none !important;
+            color: #000 !important;
+        }
+        .words a:hover {
+            color: #FFF !important;
+            background-color: #000;
+        }
+    </style>
+   
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+    {{ media }}
+{% endblock %}
+
+{% block coltype %}colM{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-form{% endblock %}
+
+{% if not is_popup %}
+    {% block breadcrumbs %}
+        <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="{% url 'admin:index' %}"><i class="fa fa-tachometer-alt"></i> {% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a></li>
+            <li class="breadcrumb-item">
+                {% if has_view_permission %}
+                    <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+                {% else %}
+                    {{ opts.verbose_name_plural|capfirst }}
+                {% endif %}
+            </li>
+            <li class="breadcrumb-item active">
+                {% if add %}
+                    {% blocktrans with name=opts.verbose_name %}Add {{ name }}{% endblocktrans %}
+                {% else %}
+                    {{ original|truncatewords:"18" }}
+                {% endif %}
+            </li>
+        </ol>
+    {% endblock %}
+{% endif %}
+
+{% comment %} {% block content_title %} {{ opts.verbose_name_plural|capfirst }} {% endblock %} {% endcomment %}
+
+
+{% block content %}
+
+    <div id="content-main" class="col-12">
+        <div class="row">
+            <div class="col-9" style="margin-top: -50px;">
+                <div class="float-left mr-3 mb-3">
+                    <i class="fas fa-file-pdf " style="font-size: 55px;"></i>
+                </div>
+                <h5>{{original.original_doc_name|remove_path}}</h5>
+                {{original.start}}
+            </div>
+        </div>
+
+        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+            <button class="nav-link active" id="nav-overview-tab" data-bs-toggle="tab" data-bs-target="#nav-overview" type="button" role="tab" aria-controls="nav-overview" aria-selected="true">Overview</button>
+            <button class="nav-link" id="nav-pytesseract-tab" data-bs-toggle="tab" data-bs-target="#nav-pytesseract" type="button" role="tab" aria-controls="nav-pytesseract" aria-selected="false">Pytesseract</button>
+            <button class="nav-link" id="nav-azure-tab" data-bs-toggle="tab" data-bs-target="#nav-azure" type="button" role="tab" aria-controls="nav-azure" aria-selected="false">Azure Vision AI</button>
+            <button class="nav-link" id="nav-ml-tab" data-bs-toggle="tab" data-bs-target="#nav-ml" type="button" role="tab" aria-controls="nav-ml" aria-selected="false">ML</button>
+            <button class="nav-link" id="nav-details-tab" data-bs-toggle="tab" data-bs-target="#nav-details" type="button" role="tab" aria-controls="nav-details" aria-selected="false">Details</button>
+        </div>
+        </nav>
+        <div class="tab-content" id="nav-tabContent">
+          <div class="tab-pane fade show active" id="nav-overview" role="tabpanel" aria-labelledby="nav-overview-tab">
+
+            <div class="card card-primary card-outline">
+
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <tr>
+                            <td><strong>Pytesseract Processing time</strong></td>
+                            <td>{% elapsed original.end original.start %}</td>
+                            <td><strong>Azure AI Processing time</strong></td>
+                            <td>{% elapsed original.results.extracts.azure.end original.results.extracts.azure.start %}</td>
+                       
+                       
+                        </tr>
+                        <tr>
+                            <td><strong>Pytesseract Entities Extracted</strong></td>
+                            <td>{{ original.results.extracts.pytesseract.words.0.words|length }}</td>
+                            <td><strong>Azure AI Entities Extracted</strong></td>
+                            <td>{% azure_wordcount original.results.extracts.azure.results.analyze_result.read_results %}</td>
+                    
+                        </tr>
+                        <tr>
+                            <td><strong>Deal</strong></td>
+                            <td>{{ original.biddoc.deal }}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                    <h5 class="pt-5">Extracted Entities</h5>
+                    <hr noshade>
+                    {% for entity in entities %}
+                    <label for="exampleInputEmail1">{{entity.entity_name}}</label>
+                    <input type="input" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{entity.entity_value}}">
+       
+                    {% endfor %}
+                    <hr class="mb-5">
+                    <object data="{% get_file original.biddoc %}" type="application/pdf" width="100%" height="800px"> 
+                        <p>It appears you don't have a PDF plugin for this browser. 
+                         No biggie... you can <a href="{% get_file original.biddoc %}">click here to
+                        download the PDF file.</a></p>  
+                    </object>
+                    
+                </div>
+                
+            </div>
+
+          </div>
+          <div class="tab-pane fade" id="nav-pytesseract" role="tabpanel" aria-labelledby="nav-pytesseract-tab">
+            <div class="card card-primary card-outline">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="doctext" class="form-label">Document Text (all lines)</label>
+                        <textarea class="form-control" id="doctext" rows = 20>
+                            {{original.results.extracts.pytesseract.doctext}}
+                        </textarea>
+                        <label for="pytesseract-words" class="form-label">Word Coordinates</label>
+                        <div id = "pytesseract-words" width="100%", height="400px;"></div>
+                      </div>
+                    
+                </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="nav-azure" role="tabpanel" aria-labelledby="nav-azure-tab">
+            <div class="card card-primary card-outline">
+                <div class="card-body">
+                    {% for page in original.results.extracts.azure.results.analyze_result.read_results %}
+                    <label for="doctext" class="form-label">Document Text - Page {{page.page}}</label>
+                    <div class="mb-3 words" style="border: 1px solid #C0C0C0; padding: 15px;">
+                        {% for line in page.lines %}
+                            {% for word in line.words %}
+                            <a class="word ml-1" role="button" data-toggle="popover" title="Confidence: {{word.confidence}}" data-content="Coordinates: {{word.bounding_box}}">
+                                {% if word.confidence < 1 %}
+                                    <span style="background-color: lightcoral">
+                                        {{word.text}}
+                                    </span>
+                                {% else %}
+                                    {{word.text}}
+                                {% endif %}
+                            </a>
+                            {% endfor %}
+                            <br>
+                        {% endfor %}
+
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="nav-ml" role="tabpanel" area-labelledby="nav-ml-tab">
+            <div class="card card-primary card-outline">
+                <div class="card-body words">
+                    {% for row in sentences %}
+                        <a class="word ml-1" role="button" data-toggle="popover" title="Predicted: {{row.predicted}}" data-content=" {{row.y_hat}}">
+                            <span style="background-color:
+                            {% if row.y_hat.closing > .5 %}
+                                navy; color: #FFF;
+                            {% elif row.y_hat.dd > .5 %}
+                                green; color: #FFF;
+                            {% elif row.y_hat.deposit > .5 %}
+                                blue; color: #FFF;
+                            {% elif row.y_hat.purchase_price > .5 %}
+                                red; color: #FFF;
+                            {% else %}
+                                none;
+                            {% endif %}
+                            ">
+                            {{row.sentence}}
+                            </span>
+                        </a>
+                        
+                    {% endfor %}
+                </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="nav-details" role="tabpanel" area-labelledby="nav-azure-tab">
+            <form {% if has_file_field %}enctype="multipart/form-data" {% endif %}action="{{ form_url }}" method="post" id="{{ opts.model_name }}_form" novalidate>
+                {% csrf_token %}
+                {% block form_top %}{% endblock %}
+    
+                {% if errors %}
+                    <div class="callout callout-danger">
+                        {% if errors|length == 1 %}
+                            {% trans "Please correct the error below." %}
+                        {% else %}
+                            {% trans "Please correct the errors below." %}
+                        {% endif %}
+                    </div>
+                    {% for error in adminform.form.non_field_errors %}
+                        <div class="alert alert-danger alert-dismissible">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            <i class="icon fa fa-ban"></i>{{ error|capfirst }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+    
+                <div class="row">
+                    {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+                    {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
+    
+                    {% block field_sets %}
+                        <div class="col-12 col-lg-9">
+                            <div class="card card-primary card-outline">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        {{ title }}{% block pretitle %}{% endblock %}
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    {% get_changeform_template adminform as changeform_template %}
+                                    {% include changeform_template %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endblock %}
+    
+                    {% block after_field_sets %}{% endblock %}
+    
+                    {% block inline_field_sets %}{% endblock %}
+    
+                    {% block after_related_objects %}{% endblock %}
+    
+                    <div class="col-12 col-lg-3">
+                        <div id="jazzy-actions" class="{{ jazzmin_ui.actions_classes }}">
+                            {% block submit_buttons_bottom %}
+                                {% submit_row %}
+                                {% block object-tools %}
+                                    {% if change %}
+                                        {% if not is_popup %}
+                                            <div class="object-tools">
+                                                {% block object-tools-items %}
+                                                    {% change_form_object_tools %}
+                                                    {% block extra_actions %}{% endblock %}
+                                                {% endblock %}
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endblock %}
+                            {% endblock %}
+                        </div>
+                    </div>
+    
+                    {% block admin_change_form_document_ready %}
+                        <script type="text/javascript" id="django-admin-form-add-constants" src="{% static 'admin/js/change_form.js' %}" {% if adminform and add %}data-model-name="{{ opts.model_name }}"{% endif %}></script>
+                    {% endblock %}
+    
+                    {% prepopulated_fields_js %}
+                </div>
+            </form>
+          </div>
+        </div>
+
+    </div>
+
+{% endblock %}
+
+{% block extrajs %}
+    {{  block.super }}
+    <script type="text/javascript" src="{% static 'vendor/select2/js/select2.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'jazzmin/js/change_form.js' %}"></script>
+    {% if jazzmin_settings.related_modal_active %}
+    <script type="text/javascript" src="{% static 'jazzmin/plugins/bootstrap-show-modal/bootstrap-show-modal.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'jazzmin/js/related-modal.js' %}"></script>
+    {% endif %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.worker.entry.min.js" integrity="sha512-NJEHr6hlBM4MkVxJu+7FBk+pn7r+KD8rh+50DPglV/8T8I9ETqHJH0bO7NRPHaPszzYTxBWQztDfL6iJV6CQTw==" crossorigin="anonymous"></script>
+    <script>
+        $(function() {
+            // create the editor
+            const container = document.getElementById("pytesseract-words")
+            const options = {}
+            const editor = new JSONEditor(container, options)
+
+            // set json
+            var True = true
+            const initialJson = {{ original.results.extracts.pytesseract.words.0|safe }}
+            editor.set(initialJson)
+
+            // get json
+            const updatedJson = editor.get()
+
+            $('[data-toggle="popover"]').each(function() {
+                $(this).popover({    
+                    content : $(this).attr("data-content"),
+                    title : $(this).attr("title"),
+                    // placement : "right"
+                })
+            });
+
+        });
+    </script>
+{% endblock %}

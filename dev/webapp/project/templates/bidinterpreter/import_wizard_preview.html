@@ -1,0 +1,624 @@
+{% extends 'global/base.html' %}
+{% block additional_css %}
+
+        #bid_doc_svg {
+            height: 900px;
+        }
+
+        #circle {
+            position: relative;
+            top: 200px;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            width: 150px;
+            height: 150px;  
+        }
+
+        .loader {
+            width: calc(100% - 0px);
+            height: calc(100% - 0px);
+            border: 8px solid #162534;
+            border-top: 8px solid #09f;
+            border-radius: 50%;
+            animation: rotate 5s linear infinite;
+        }
+
+        @keyframes rotate {
+            100% {transform: rotate(360deg);}
+        } 
+        @keyframes flickerAnimation {
+          0%   { opacity:1; }
+          50%  { opacity:0; }
+          100% { opacity:1; }
+        }
+        @-o-keyframes flickerAnimation{
+          0%   { opacity:1; }
+          50%  { opacity:0; }
+          100% { opacity:1; }
+        }
+        @-moz-keyframes flickerAnimation{
+          0%   { opacity:1; }
+          50%  { opacity:0; }
+          100% { opacity:1; }
+        }
+        @-webkit-keyframes flickerAnimation{
+          0%   { opacity:1; }
+          50%  { opacity:0; }
+          100% { opacity:1; }
+        }
+        .animate-flicker {
+            position: relative;
+           -webkit-animation: flickerAnimation 1s infinite;
+           -moz-animation: flickerAnimation 1s infinite;
+           -o-animation: flickerAnimation 1s infinite;
+            animation: flickerAnimation 1s infinite;
+            top: 85px;
+            left: 40px;
+        } 
+
+        .fill { 
+            min-height: 100%
+            width: 100%
+        }
+
+        .btn.active {                
+            display: none;		
+        }
+
+        .btn span:nth-of-type(1)  {            	
+            display: none;
+        }
+        .btn span:last-child  {            	
+            display: block;		
+        }
+
+        .btn.active  span:nth-of-type(1)  {            	
+            display: block;		
+        }
+        .btn.active span:last-child  {            	
+            display: none;			
+        }
+        .form-inline label {
+            display: inline;
+            text-align:right !important; 
+        }
+{% endblock %}
+
+{% block head %}
+{{ wizard.form.media }}
+{% endblock %}
+
+{% block content %}
+
+<!-- <svg 
+  style="border: 1px solid black;" version="1.1"
+  id = "bid_doc_svg"
+  height = "100%"
+  width = "100%"
+  x="0"   y="0"
+>
+    <image id="bid_doc" transform="scale(1.0287)" x="0" y="0" class="d-none" xlink:href="" />
+</svg> -->
+
+<!-- for next release
+<div id="demo" style="height: 50%;">
+    <pdf-app pdf="http://localhost:8000/uploads/2/IEC%20LOI%20-%20Courtyards%20at%2065th%20-%204.24.19.pdf"></pdf-app>
+</div>
+-->
+
+<div class="container bootstrap">
+    <div class="" >
+
+        <div class="container mb-3 mt-3">
+            <h2><i class="fas fa-home" aria-hidden="true"></i><a href="{% url 'bidinterpreter:detail' deal_id %}">{{deal_name}}</a></h2>
+            <em><i class="fas fa-file-import"></i> {{original_doc_name}}</em>
+        </div>
+
+        <div id="circle">
+            <div class="animate-flicker">Loading...</div>
+            <div class="loader">
+                <div class="loader">
+                    <div class="loader">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="bid_doc_svg" style="width: 100%;"></div>
+
+        <div id="preview-form" style="display: none; margin-top: 15px"><!-- I know this is lazy forgive me. Bootstrap css margin wasn't working. -->
+            <select class="form-control d-none" id="matches"></select>
+            <form class='form-inline needs-validation' role='form' method="get" action="{% url 'bidinterpreter:bid-add' deal_id %}" novalidate>
+            
+                <table class="table table-hover">
+                    <tbody id="entity_feedback"></tbody>
+                </table>
+                <input type="hidden" name="p" id="p">
+                <input type="hidden" name="bid_doc_id" id="bid_doc_id" value="{{doc_id}}">
+                <button class="btn btn-primary ml-auto" id="process-button" type="submit" disabled>Next: Confirm Bid ></button>
+            </form>
+        
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block additional_js %}
+<!-- <script src="https://unpkg.com/vue"></script> -->
+<script src="https://unpkg.com/vue-pdf-app"></script>
+<script>
+
+    $(function() {
+
+        // new Vue({
+        // components: {
+        //     PdfApp: window["pdf-viewer"]
+        // }
+        // }).$mount('#demo')
+
+        class BidDocUI {
+
+            data        = false;
+            deal_id     = {{deal_id}}; // 1; 
+            PanZoom     = false;
+            map         = false;
+            markers     = new Array();
+            callbacks   = {};
+            zoom_scale  = 0.9713
+            pan_delay   = 500
+
+            entity_button_last_clicked = {
+                entity_name: false,
+                coord:       false
+            } // super hack -- forgive me whoever maintains this in the future
+            styles  = {
+                entity_stroke_color:        'yellow',
+                active_entity_stroke_color: 'red'
+            }
+            entity_map = {
+                purchase_price: {
+                    label:      "Purchase Price",
+                    input_name: "purchase_price",
+                    index:      0,
+                    required:   true,
+                },
+                due_diligence:  {
+                    label:      "Due Diligence",
+                    input_name: "due_diligence",
+                    index:      2,
+                    required:   true,
+                },
+                deposit:        {
+                    label:      "Deposit",
+                    input_name: "deposit",
+                    index:      1,
+                    required:   true,
+                },
+                closing:        {
+                    label:      "Closing",
+                    input_name: "closing",
+                    index:      3,
+                    required:   true,
+                }
+            }
+            skip_entities = ['time_period'];  // Entities to skip in rendering processes
+
+            constructor() {
+                this.request_process_document();
+                this.set_listeners();
+            }
+
+            remove_entity_markers() {   
+                // remove all custom markers from map UI.
+                ui.map.eachLayer(function(layer) {
+                    //console.log("itarating layers", layer)
+                    // only "name" exists in custom marker layers.
+                    if('name' in layer.options) {
+                        //console.log('removing', layer.options.name)
+                        ui.map.removeLayer(layer)
+                    }
+                })
+            }   
+
+            focus_entity(entity_name) {
+                // set active_entity_stroke_color
+           
+                document.querySelector(`path.${entity_name}`).setAttribute('stroke', this.styles.active_entity_stroke_color);
+
+                for (let [entity_key, options] of Object.entries(this.entity_map)) {
+                    
+                    let inactive_path = document.querySelector(`path.${entity_key}`);
+                    if (entity_key != entity_name && inactive_path)  {
+                        inactive_path.setAttribute('stroke', this.styles.entity_stroke_color);
+                    }
+                }
+                
+            }
+
+            pan_to_location(event) {
+                
+                ui.map.panTo(ui.map.unproject(ui.entity_button_last_clicked.coord), {
+                    "animate": true,
+                });
+
+                //// To revisit in the fuutre.. pan after zoom has ended.  Problem was to get calling object to selectively run pan or not.  Couldn't find object reference as shown in documentation for leaflet "zoomend" callback spec.
+                //if(!event) { // super hack!
+                //    console.log("------- pan to location called from button ------  Zooming to", ui.entity_button_last_clicked.coord)
+                //    ui.map.panTo(
+                //        ui.map.unproject(ui.entity_button_last_clicked.coord),
+                //        {
+                //            "animate": true,
+                //        }
+                //    )
+                //} else {
+                //    console.log(" -------- pan to location called from zoom button --- not panning ------")
+                //}
+                // remove callback -- removing since this screws up zoom buttons as well.
+                // ui.map.off('zoomend', ui.callbacks[entity_input_name]);
+
+            }
+
+            append_review_row({entity_name = false, entity_value = false, placeholder = "", entity_found = false, entity_coord = false}) {
+
+                // get entity label from internal map
+                console.log("getting entity_name", entity_name)
+                let entity_label        = this.entity_map[entity_name]['label']
+                let entity_input_name   = this.entity_map[entity_name]['input_name']
+                let entity_index        = this.entity_map[entity_name]['index']
+
+                // add feedback ui
+                let tableRef  = document.getElementById('entity_feedback');
+                let newRow    = tableRef.insertRow(-1);
+                newRow.setAttribute("index", entity_index)
+                
+                let rowLabelCell  = newRow.insertCell(0);
+                var rowLabelText  = document.createElement('span');
+                rowLabelText.className = "label";
+                if(entity_found) {
+
+                    rowLabelText.innerHTML = `<label for="${entity_input_name}" class="form-label"><button type="button" class="btn btn-success btn-sm" id="${entity_input_name}-button"><i class="fas fa-magnet" data-toggle="tooltip" data-placement="top" title="This item was extracted from the document."></i> ${entity_label}</button></label>`
+                    let panButton = rowLabelText.querySelector('button');
+                    panButton.addEventListener('click', (event) => {
+
+                        let [x0, x1, y0, y1] = entity_coord
+                        let calling_entity = event.target.id.replace('-button', '')
+
+                        // highlight current entity, turn others off
+                        this.focus_entity(calling_entity)
+
+                        // adding this back to original location.  Too much hacking to get it right.
+                        // ui.add_entity_marker(x0, y0, x1, y1, event.target.id);
+
+                        let initial_prezoom_level = ui.map.getZoom()
+                        let pan_coord = [x0 * ui.zoom_scale, y1 * ui.zoom_scale]
+        
+                        this.entity_button_last_clicked = {
+                            entity_name: calling_entity,
+                            coord:       pan_coord
+                        }
+
+                        // This is a last-minute hack to address: https://github.com/BidCentral/bidinterpreter/issues/29
+                        switch(ui.map.getZoom()) {
+                            case -1:
+                                var x_zoom_scale = .5;
+                                var y_zoom_scale = .5;
+                            break;
+
+                            case 0:
+                                var x_zoom_scale = 1;
+                                var y_zoom_scale = 1;
+                            break;
+
+                            case 1:
+                                var x_zoom_scale = 2;
+                                var y_zoom_scale = 2;  
+                            break;
+
+                            default:
+                                var x_zoom_scale = 2;
+                                var y_zoom_scale = 2;
+
+                        }
+
+                        let normalized_coord = [(x0 * ui.zoom_scale) * x_zoom_scale, (y1 * ui.zoom_scale) * y_zoom_scale]
+
+                        // let callback = ui.pan_to_location.bind(null, pan_coord, calling_entity);
+                        // ui.callbacks[entity_input_name] = callback;
+
+                        // release 3 - removing auto zoom features
+                        // ui.map.setZoom(ui.map.getMaxZoom()-1)
+                        console.log('x/y scale', [x_zoom_scale, y_zoom_scale], 'panning to', normalized_coord, 'zoom level:', ui.map.getZoom())
+                        ui.map.panTo(ui.map.unproject(normalized_coord))
+                        // setTimeout(ui.pan_to_location, ui.pan_delay) // this will work for now.. too bad
+                        // handle after zoom pan -- used to bug out before
+                        // ui.map.on('zoomend', ui.pan_to_location);
+                    });
+                } else {
+                    rowLabelText.innerHTML = `<label for="${entity_name}" class="form-label text-left"><button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="We couldn't find ${entity_label}.  Please enter it."></i> ${entity_label}</button></label>`
+                }
+                rowLabelCell.append(rowLabelText)
+
+                // row td input for text input form item
+                let rowInputCell        = newRow.insertCell(1);
+                let rowInput            = document.createElement('input');
+                rowInput.type           = "text"
+                rowInput.class          = "form-control"
+                rowInput.name           = this.entity_map[entity_name]['input_name']
+                rowInput.required       = this.entity_map[entity_name]['required']
+                rowInput.value          = entity_value
+                rowInput.placeholder    = placeholder
+
+                rowInputCell.appendChild(rowInput)
+                rowInputCell.setAttribute
+
+                let intial_x = ui.data.image_size.x * .5
+                let intial_y = 0
+                rowInputCell.addEventListener('click', (event) => {
+                    console.log('Clicked -- this', event.path[0].name, this)
+                    let [x0, x1, y0, y1] = entity_coord;
+                    let pan_coord = [x0 * ui.zoom_scale, y1 * ui.zoom_scale];
+                    let calling_entity = event.path[0].name;
+
+                    this.entity_button_last_clicked = {
+                        entity_name: calling_entity,
+                        coord:       pan_coord
+                    }
+
+                    this.focus_entity(calling_entity)
+                    // release 3 - removing autozoom features
+                    // ui.map.setZoom(ui.map.getMaxZoom()-1)
+                    setTimeout(ui.pan_to_location, ui.pan_delay) // this will work for now.. too bad
+                });
+
+                // row td input for feedback buttons -- only if found
+                let feedbackCell  = newRow.insertCell(2);
+                if(entity_found) {
+                    let feedbackUI = document.createElement('div')
+                    feedbackUI.innerHTML = `<div class="btn-group btn-group-toggle" data-toggle="buttons"><label class="btn btn-secondary"><input type="radio" name="options[${entity_name}]" id="option_0_${entity_name}" value="0" autocomplete="off"><i class="far fa-thumbs-down"></i></label><label class="btn btn-secondary"><input type="radio" name="options[${entity_name}]" id="option_1_${entity_name}" value="1" autocomplete="off" checked><i class="far fa-thumbs-up"></i></label></div>`
+                    feedbackCell.appendChild(feedbackUI)
+                }
+            }
+
+            request_process_document() {
+                //fetch("/bidinterpreter/deal/test")
+                fetch("/bidinterpreter/deal/{{deal_id}}/import/{{doc_id}}?format=json")
+                    .then(response => response.json())
+                    .then(data => {
+                        // set data for later use
+                        this.data = data
+                        return data
+                    })
+                    .then(data => {
+
+                        console.log('response', data, this.deal_id)
+                        var filepath = "/uploads/" + this.deal_id + "/" + data.processed_doc + ".png.highlighted.png"
+                        console.log("filepath:", filepath)
+                        $("#bid_doc").attr("xlink:href", filepath)
+
+                        // force object refresh
+                        // $("#bid_doc_svg").html($("#bid_doc_svg").html())
+
+                        $("#bid_doc").removeClass("d-none")
+                        $("#bid_doc").fadeIn("slow")
+
+                        var image_width = data.image_size.x
+                        var image_height = data.image_size.y
+
+                        this.map = L.map('bid_doc_svg', {
+                            crs: L.CRS.Simple,
+                            minZoom: -1,
+                            maxZoom: 1,
+                            zoom: 0,
+                            center: [-200, 200],
+                            scrollWheelZoom: false
+                        });
+
+                        console.log('Get current zoom level', this.map.getZoom())
+                        // set zoom button events to set last clicked -- super hack
+                        var zoom_in  = document.querySelector('a.leaflet-control-zoom-in');
+                        var zoom_out = document.querySelector('a.leaflet-control-zoom-in');
+
+                        $("#p").val(data.p)
+                        //var center = [
+                        //    map.unproject([0, image_height], map.getMaxZoom()-1),
+                        //        map.unproject([image_width, 0], map.getMaxZoom()-1)
+                        //]
+                        //map.panTo(center)
+
+                        // calculate the edges of the image, in coordinate space
+                        var southWest = this.map.unproject([0, image_height], this.map.getMaxZoom()-1);
+                        var northEast = this.map.unproject([image_width, 0], this.map.getMaxZoom()-1);
+                        var bounds    = new L.LatLngBounds(southWest, northEast);
+
+                        var image  = L.imageOverlay(filepath, bounds).addTo(this.map)
+
+                        // maximum bounds based on the image
+                        this.map.setMaxBounds(bounds);
+
+                        // Zoom to first match
+                        this.set_initial_pan()
+
+                        // console.log("Added image to map..")
+
+                        // add hilight elements
+                        // var scale = 1.0287 // worked in SVG demo
+                        // this.scale = 0.9713
+
+                        if (data.entities.length <= 1) {  
+                             $("#matches").append(new Option("Sorry, we couldn't find any entities in this document!", 0))
+                        }
+
+                        data.entities.map( (row, index) => {
+
+                            if (!row && data.entities.length < 2) {
+                                $("#matches").append(new Option("Sorry, we couldn't find any entities in this document!", 0))
+                                return
+                            } else if(!row) {
+                                return
+                            }
+
+                            if (this.skip_entities.includes(row.entity_name)) {
+                                return
+                            }
+    
+                            let southWest = this.map.unproject([(row['x0'] * this.zoom_scale) - 5, (row['y1'] * this.zoom_scale) - 10], this.map.getMaxZoom()-1);
+                            let northEast = this.map.unproject([(row['x1'] * this.zoom_scale) + 5, (row['y0'] * this.zoom_scale) + 8], this.map.getMaxZoom()-1);
+                            
+                            let bounds    = new L.LatLngBounds(southWest, northEast);
+
+                            // add polygon to markers list -- adds highlights
+                            let rect      = L.rectangle(bounds, {color: 'yellow', weight: 2, name: row.entity_name, className: row.entity_name})
+                            this.markers[index] = rect; // save layers
+                            this.map.addLayer(rect);
+
+
+                            let label = `${row.entity_name} is ${row.entity_value} @ x0:${row.x0}, y1:${row.y1}`
+                            $("#matches").append(new Option(label, index))
+
+                            this.append_review_row({
+                                entity_name:  row.entity_name,
+                                entity_value: row.entity_value, 
+                                entity_found: true,
+                                entity_coord: [row['x0'], row['y0'], row['x1'], row['y1']]
+                            })
+
+                        })
+
+                        for (let [entity_key, options] of Object.entries(this.entity_map)) {
+                            if (data.entities.find(row => row.entity_name == entity_key) || this.skip_entities.includes(entity_key)) {
+                                continue;
+                            } 
+                            this.append_review_row({
+                                entity_name:  options['input_name'], 
+                                entity_value: "",
+                                placeholder:  `Enter ${options['label']}`
+                            })
+                        }
+
+                        // order table by index
+                        const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+
+                        const comparer = (a, b) => {
+                            let a_int = parseInt(a.getAttribute("index"))
+                            let b_int = parseInt(b.getAttribute("index"))
+
+                            switch (a_int < b_int) {
+                                case true:
+                                    return -1
+                                case false:
+                                    return 1
+                                default:
+                                    return 0
+                            }
+                        }
+
+                        // Sort the table by index defined in class attribute above
+                        document.querySelectorAll('tbody#entity_feedback').forEach(th => {
+                            console.log("sorting table....")
+                            const table = th.closest('table');
+                            Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
+                                .sort(comparer)
+                                .forEach(tr => table.appendChild(tr) );
+                        });
+                    })
+                    .then(() => {
+                        $("#circle").fadeOut('slow');
+                        $("#preview-form").fadeIn('slow');
+                        $("#process-button").prop('disabled', false);
+                        $('[data-toggle="tooltip"]').tooltip()
+                    })
+                    .catch((error) => {
+                        console.error('Error processing document:', error);
+                    });
+            }
+
+            set_listeners() {
+                //$("#matches").change(this.handle_change)
+                var matches = document.getElementById('matches');
+                var self = this
+                matches.addEventListener('change', this.handle_change, false);
+
+                // debug zoomer
+                // var button = document.getElementById('button');
+                // button.addEventListener('click', this.debug_pan, false);
+            }
+            debug_pan() {
+                var zoom = document.getElementById('zoom').value;
+                var x = document.getElementById('x').value;
+                var y = document.getElementById('y').value;
+                console.log("x/y:", x, y);
+                console.log("map panObj", ui.map.panTo)
+                // ui.PanZoom.zoom(1)
+                // ui.PanZoom.zoomAtPoint(zoom, {x: x, y: y})
+                // console.log("getting sizes:", ui.PanZoom.getSizes());
+            }
+
+            set_initial_pan(index = 0) {
+                
+                // if (ui.data.entities[index] != false || ui.data.entities[index] != undefined) {
+                //     var match = ui.data.entities[index]
+                //     console.log("setting match NOT false", ui.data.entities[index])
+                // } else {
+                //     var match = new Object();
+                //     match.x0 = ui.data.image_size.x * .5
+                //     match.y1 = 100
+                //     console.log("setting match new object")
+                // }
+              
+                let intial_x = ui.data.image_size.x * .5
+                let intial_y = 0
+
+                console.log("---------------------- setting initial zoom.", [intial_x * ui.zoom_scale, 1406 * ui.zoom_scale])
+
+                // release 3 - removing autozoom features
+                ui.map.setZoom(ui.map.getMaxZoom()-2)
+                ui.map.panTo(
+                    ui.map.unproject([intial_x * ui.zoom_scale, 0]), // removing * ui.zoom_scale
+                    {
+                        "animate": true,
+                    }
+                )
+                //setTimeout(function() {
+                //    $(".leaflet-control-zoom-out")[0].click()
+                //    ui.map.setZoom(ui.map.getMaxZoom()-3)
+                //}, 1000);
+            
+            }
+
+            handle_change() {
+                let scale = 0.9713
+
+                // Has to be a better way than "ui" global.
+                // Also tried wrapping the handler and passing "this" without success
+                // console.log("hilight coords: ", this.value, ui.data.entities, ui.data.entities[this.value])
+                
+                const match = ui.data.entities[this.value]
+                // release 3 - removing autozoom features
+                // ui.map.setZoom(ui.map.getMaxZoom()-1)
+                ui.map.panTo(
+                    ui.map.unproject([match.x0 * scale, match.y1 * scale]),
+                    {            
+                        "animate": true,
+                    }
+                )
+                
+                
+           
+        
+                // ui.PanZoom.zoom(1)
+                // ui.PanZoom.zoomAtPoint(1, {x: 0, y: 0})
+                // ui.PanZoom.zoomAtPointBy(3, {x: match.x0, y:match.y0});
+
+                
+            }
+        }
+
+        var ui = new BidDocUI()
+        
+    });
+   
+</script>
+
+{% endblock %}

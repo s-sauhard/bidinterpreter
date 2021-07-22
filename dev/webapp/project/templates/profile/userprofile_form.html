@@ -1,0 +1,91 @@
+{% extends 'global/base.html' %}
+{% load humanize %}
+
+{% block additional_css %}
+  .help-block {
+      color: red;
+  }
+{% endblock %}
+
+
+{% load bootstrap %}
+{% block content %}
+
+<hr>
+<div class="container bootstrap snippet">
+    <div class="row">
+  		<div class="col-sm-3"><!--left col-->
+
+      <div class="text-center">
+        <div class="col-sm-20"><img src="{{ user.socialaccount_set.all.0.get_avatar_url }}" class="rounded-circle z-depth-2 img-fluid" data-holder-rendered="true"></div>
+        <!-- <h6>Upload a different photo...</h6>
+        <input type="file" class="text-center center-block file-upload"> maybe next version -->
+      </div></hr><br>
+          <div class="panel panel-default">
+            <div class="panel-heading"><i class="fa fa-user fa-1x"></i> {{user.email}} </div>
+            <div class="panel-body">&nbsp;</div>
+          </div>
+          
+          <ul class="list-group">
+            <li class="list-group-item text-muted">Activity <i class="fa fa-dashboard fa-1x"></i></li>
+            <li class="list-group-item text-right"><span class="float-left"><strong>Deals</strong></span> 125</li>
+            <li class="list-group-item text-right"><span class="float-left"><strong>Bids</strong></span> 13</li>
+          </ul> 
+        <br>
+        <ul class="list-group">
+            <li class="list-group-item text-muted">Account <i class="fa fa-briefcase fa-1x"></i></li>
+            <li class="list-group-item"><a href="{% url 'account_change_password' %}">Update Password</a></li>
+            <li class="list-group-item"><a href="{% url 'account_logout' %}">Logout</a></li>
+          </ul> 
+               
+        <!-- in case we want some content here in the future
+          <div class="panel panel-default">
+            <div class="panel-heading">Social Media</div>
+            <div class="panel-body">
+            	<i class="fa fa-facebook fa-2x"></i> <i class="fa fa-github fa-2x"></i> <i class="fa fa-twitter fa-2x"></i> <i class="fa fa-pinterest fa-2x"></i> <i class="fa fa-google-plus fa-2x"></i>
+            </div>
+          </div>
+        -->
+          
+        </div><!--/col-3-->
+    	<div class="col-sm-9">
+            {% if not profile_complete %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <strong>Welcome to Bid Central!</strong> To create <strong>deals</strong> and <strong>bid</strong>, we require all users complete their profiles.  We store your data securely on our 
+platform and will not share it with third parties outside our platform.
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endif %}
+
+            {% if invite %}
+            <div class="alert alert-success" role="alert">
+                <h4 class="media-heading">{{invite.deal.user.first_name}} {{invite.deal.user.last_name}}<small> ({{invite.deal.user.username}})</small></h4>
+                <h5>Invited you to <span class="badge badge-primary">{% if invite.user_permission %} submit bids on{% else %} view {% endif %}</span> their deal, {{invite.deal.deal_name}} <br>
+                <small><span class="fa fa-calendar"></span> <em>{{invite.created|naturaltime}}</em></small></h5>
+            </div>
+            {% endif %}
+
+            <form class="form-horizontal" action = "" method="post" enctype="multipart/form-data">
+                <div class="col-sm-offset-2 col-sm-10">
+
+                {% if messages %}
+               
+                    {% for message in messages %}
+                    <div  class="alert {% if message.tags %}  alert-{{ message.tags }}  {% endif %}" role="alert"> {{ message }} </div>
+                    {% endfor %}
+            
+                {% endif %}
+
+                {% csrf_token %}
+                {{ form|bootstrap }}
+                <div class="form-group">
+                <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+                </div>
+            </form>
+        </div><!--/col-9-->
+    </div><!--/row-->
+
+{% endblock %}

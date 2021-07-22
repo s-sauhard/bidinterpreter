@@ -1,0 +1,248 @@
+{% extends 'global/base.html' %}
+{% load render_table from django_tables2 %}
+{% load humanize %}
+
+{% block content %}
+
+{% comment %} <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> {% endcomment %}
+<!------ Include the above in your HEAD tag ---------->
+
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="#" crossorigin="anonymous">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vue-file-agent@latest/dist/vue-file-agent.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue-file-agent@1.6.2/dist/vue-file-agent.umd.js"></script>
+
+<div class="container-fluid">
+	<div class="row">
+        {% include 'global/deal_nav.html' %}
+		<div class="col-md-9">
+		    <div class="card">
+		        <div class="card-body" v-cloak @drop.prevent="addFile" @dragover.prevent id="bid-card">
+
+		            <div class="row">
+		                <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <div class="col-sm">
+                                    <h2><i class="fas fa-gavel"></i><small class="text-muted"> Bids</small></h2>
+                                </div>
+                                {% if deal_owner or can_bid %}
+                                <div class="mr-auto">
+                                    <a href="{% url 'bidinterpreter:bid-add' deal %}" class="btn btn-primary"><i class="fas fa-gavel"></i> New Bid</a>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="container py-3">
+                                <div id="app">
+                                    <vue-file-agent></vue-file-agent>
+                                </div>
+                            </div>
+                            <div class="table-container text-right">
+                                <a href="{%url 'bidinterpreter:download-csv' deal %}" class="btn btn-success"><i class="fas fa-file-csv"></i> CSV</a>
+                                <a href="{%url 'bidinterpreter:download-pdf' deal %}" class="btn btn-danger"><i class="fas fa-file-pdf"></i> PDF</a>
+                            </div>
+                            {% if bid_list %}
+                                {% render_table table %}
+                            {% else %}
+                                No bids on this deal yet!
+                            {% endif %}
+
+		                </div>
+		            </div>
+		        </div>
+		    </div>
+		</div>
+	</div>
+</div>
+
+<script type="text/x-template" id="vue-file-agent">
+  <div class="bg-light">
+    <VueFileAgent
+      class="upload-block"
+      ref="vfaDemoRef"
+      :uploadUrl="'{% url 'bidinterpreter:upload-document' deal %}'"
+      :uploadHeaders="{'X-CSRFToken': '{{csrf_token}}'}"
+      :accept="'image/*,.pdf,.msi'"
+      :multiple="true"
+      :deletable="false"
+      :theme="'list'"
+      :maxSize="'1005MB'"
+      :thumbnailSize="120"
+      :helpText="'Choose PDF files or drag & drop here.'"
+      :errorText="{
+        type: 'Please select images or pdf files',
+        size: 'Max filesize is 15M!',
+      }"
+      v-model="fileRecords"
+
+    >
+    </VueFileAgent>
+    <!-- @upload="onUpload($event)" -->
+  </div>
+</script>
+
+
+<div class="modal" tabindex="-1" role="dialog" id="confirm">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this bid?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="delete">Delete Bid</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+{% endblock %}
+
+{% block additional_css %}
+.bid-table { margin-top: 20px; }
+.bid-table th a { color: white; }
+.panel > .list-group
+{
+    margin-bottom: 0;
+}
+.panel > .list-group .list-group-item
+{
+    border-width: 1px 0;
+}
+.panel > .list-group .list-group-item:first-child
+{
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+}
+.panel > .list-group .list-group-item:last-child
+{
+    border-bottom: 0;
+}
+.panel-heading + .list-group .list-group-item:first-child
+{
+    border-top-width: 0;
+}
+.panel-default .list-group-item.active
+{
+    color: #000;
+    background-color: #DDD;
+    border-color: #DDD;
+}
+.panel-primary .list-group-item.active
+{
+    color: #FFF;
+    background-color: #428BCA;
+    border-color: #428BCA;
+}
+.panel-success .list-group-item.active
+{
+    color: #3C763D;
+    background-color: #DFF0D8;
+    border-color: #D6E9C6;
+}
+.panel-info .list-group-item.active
+{
+    color: #31708F;
+    background-color: #D9EDF7;
+    border-color: #BCE8F1;
+}
+.panel-warning .list-group-item.active
+{
+    color: #8A6D3B;
+    background-color: #FCF8E3;
+    border-color: #FAEBCC;
+}
+.panel-danger .list-group-item.active
+{
+    color: #A94442;
+    background-color: #F2DEDE;
+    border-color: #EBCCD1;
+}
+.panel a.list-group-item.active:hover, a.list-group-item.active:focus
+{
+    color: #000;
+    background-color: #DDD;
+    border-color: #DDD;
+}
+ .image {
+     position: relative;
+     z-index: 2;
+     margin: auto;
+     width: 88px;
+     height: 88px;
+     border: 8px solid white;
+     line-height: 88px;
+     border-radius: 50%;
+     background: #E0E0E0;
+     vertical-align: middle;
+}
+.image > i { font-size: 36px !important; color: #fff !important; margin-top: .45em;}
+
+
+
+#profile-pic-demo .drop-help-text {
+  display: none;
+}
+#profile-pic-demo .is-drag-over .drop-help-text {
+  display: block;
+}
+#profile-pic-demo .profile-pic-upload-block {
+  border: 2px dashed transparent;
+  padding: 20px;
+  padding-top: 0;
+}
+
+#profile-pic-demo .is-drag-over.profile-pic-upload-block {
+  border-color: #AAA;
+}
+#profile-pic-demo .vue-file-agent {
+  width: 180px;
+  float: left;
+  margin: 0 15px 5px 0;
+  border: 0;
+  box-shadow: none;
+}
+
+{% endblock %}
+
+{% block additional_js %}
+
+<script src="https://unpkg.com/tus-js-client@latest/dist/tus.js"></script>
+<script src="https://unpkg.com/vue-file-agent@latest/dist/vue-file-agent.umd.js"></script>
+<script type="module" src="/static/js/bidinterpreter/fileupload.js"></script>
+
+<script>
+$(function() {
+
+    $('.delete_bid').on('click', function(e) {
+        var link = $(this).closest('a');
+        e.preventDefault();
+        $('#confirm').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+        .on('click', '#delete', function(e) {
+            window.location = link.attr('href')
+        });
+        $("#cancel").on('click',function(e){
+            e.preventDefault();
+            $('#confirm').modal.model('hide');
+        });
+    });
+
+
+
+});
+</script>
+
+{% endblock %}

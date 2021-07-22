@@ -1,0 +1,99 @@
+{% block content %}
+    <!-- Evuating using components for these types of code. -->
+    <style>
+        .dropdown-item {
+            cursor: pointer;
+        }
+    </style>
+
+    <div id="search">
+        {% csrf_token %}
+        <div class="field">
+            <div class="control">
+                <div v-bind:class="{ 'is-active': searchDropdownActive }" class="dropdown" required>
+                    <div class="dropdown-trigger">
+                        <div class="dropdown-trigger">
+                            <input 
+                                class          = "form-control" 
+                                type           = "search" 
+                                v-model        = "query" 
+                                v-on:keyup     = "handleSearch" 
+                                v-on:blur      = "blur()" 
+                                aria-haspopup  = "true"
+                                aria-controls  = "search-dropdown"
+                                placeholder    = "Search bids, deals, or users"
+                                id             = "search" 
+                                name           = "q"
+                            {% if q %}
+                                value          = "{{q}}"
+                            {% endif %}
+                            >
+                        </div>
+
+                        <div class="dropdown-menu" id="search-dropdown" role="menu">
+                            <div class="dropdown-content">
+                                <a v-for="deal in deals" v-on:click="loadDeal(deal)" class="dropdown-item">
+                                    <img v-bind:src = "deal.owner.avatar" class="rounded-circle z-depth-2 img-fluid" style="width: 35px; float: left; margin: 4px 10px 0px -15px;"> 
+                                   
+                                    <h6><span v-html="deal.name"></span><br>
+                                        <small style="font-size: 12pt;">[[ deal.owner.username ]] </small>
+                                    </h6>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var search = new Vue({
+            el: "#search",
+            delimiters: ['[[', ']]'],
+            data: {
+                query: '',
+                deals: [],
+                searchDropdownActive: false,
+            },
+            methods: {
+                blur: function() {
+                    $("#search-dropdown").fadeOut()
+                },
+                handleSearch: function() {
+                    console.log(this.query)
+                    axios.get(
+                        "{% url 'bidinterpreter:search-json' %}", 
+                        {
+                            params: { 
+                                term: this.query
+                            }
+                        }).then(response => {
+                            // handle success
+                            if (response.data.length > 0) {
+                                console.log(response.data);
+                                this.deals = response.data.map(deal => {
+                                    var regEx = new RegExp(this.query, "ig");
+                                    return {
+                                        id:    deal.id,
+                                        name:  deal.name.replace(regEx, "<strong style='color: blue'>" + this.query + "</strong>"),
+                                        owner: deal.owner
+                                    }
+                                })
+                           
+                                this.searchDropdownActive = true;
+                                $("#search-dropdown").fadeIn()
+                                console.log({deals: this.deals, query: this.data});
+                            } else {
+                                $("#search-dropdown").fadeOut()
+                            }
+                        })
+                },
+                loadDeal: function(deal) {
+                    window.location.href = `/bidinterpreter/${deal.id}`;
+                }
+            }
+        });
+    </script>
+
+{% endblock %}

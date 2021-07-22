@@ -1,0 +1,18 @@
+.dropzone{
+    width:50%;
+    height:300px;
+    border:2px dashed #ccc;
+    color: #ccc;
+    line-height:300px;
+    font-size: 18pt;
+    text-align: center;
+}
+
+.dropzone.dragover{
+    border-color:#000;
+    color:#000;
+}
+
+#search {
+    padding-top: 10px;
+}

@@ -1,0 +1,58 @@
+{% extends 'global/base.html' %}
+{% load static %}
+
+{% block headcode %}
+
+{% endblock headcode %}
+
+{% block content %}
+<p>&nbsp;</p>
+<div class="col-sm-offset-2 col-sm-10 card-body bg-light">
+
+    {% if update %}
+    <h2><i class="fas fa-home"></i><small class="text-muted"> Update - {{ deal_name }}</h2>
+    {% else %}
+    <h2><i class="fas fa-home"></i><small class="text-muted"> New Deal</small></h2>
+    {% endif %}
+    <form class="form-horizontal" action = "" method="post" enctype="multipart/form-data">
+        <div class="col-sm-offset-2 col-sm-10">
+        {% csrf_token %}
+        {% include 'global/form_template.html' %}
+        </div>
+    </form>
+<!--
+    <form class="form-horizontal margin-top-xl" action = "" method="post">
+        <h2><i class="fas fa-user"></i><small class="text-muted"> Users / Permissions <button type="button" class="btn btn-primary btn-sm">Add User</button></h2>
+
+    </form>
+
+    <h2 class="margin-top-xl"><i class="fas fa-envelope-square"></i><small class="text-muted"> Invite User </h2>
+    <form action = "" method="post">
+        <div class="form-row">
+            
+            <div class="col-10">
+                <input class="form-control" placeholder="ex: david@yerrington.net" type="text">
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary form-control">Send Invite</button>
+            </div>
+        
+        </div>
+    </form>
+
+    <h2 class="margin-top-xl"><i class="fas fa-user"></i><small class="text-muted"> Invite External User </h2>
+    <form action = "" method="post">
+        <div class="form-row">
+            
+            <div class="col-10">
+                <input class="form-control" placeholder="ex: david@yerrington.net" type="text">
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary form-control">Send Invite</button>
+            </div>
+        
+        </div>
+    </form>
+-->
+</div>
+{% endblock %}

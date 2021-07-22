@@ -1,0 +1,30 @@
+{% extends 'bidinterpreter/base.html' %}
+{% block bodycode %}
+test test test
+    <form method="post" role="form">
+    {% csrf_token %}
+
+        <div class="form-group">
+            <div id="the-basics">
+                <input type="text" placeholder="Deal Name" id="search">
+            </div>
+        </div>
+    </form>
+
+    {% block extra_js %}
+        <script type="text/javascript">
+            $(function() {
+                $("#search").autocomplete({
+                    source: "{% url 'bidinterpreter:search-json' %}",
+                    // minLength: 2,
+                    // open: function(){
+                    //    setTimeout(function () {
+                    //        $('.ui-autocomplete').css('z-index', 99);
+                    //    }, 0);
+                    // } 
+                });
+                console.log('everything is still here...', $('#search'))
+            });
+        </script>
+    {% endblock %}
+{% endblock %}

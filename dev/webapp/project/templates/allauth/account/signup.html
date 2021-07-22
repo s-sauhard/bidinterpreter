@@ -1,0 +1,45 @@
+{% extends "account/base.html" %}
+
+{% load i18n custom_tags %}
+
+{% block head_title %}{% trans "Signup" %}{% endblock %}
+
+{% block content %}
+
+
+<form class="socialaccount-form socialaccount-form__signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
+  {% csrf_token %}
+  <h2 class="text-center">{% trans "Sign Up" %}</h2>
+  <p>{% blocktrans %}Already have an account? Then please <a href="{{ login_url }}">sign in</a>.{% endblocktrans %}</p>
+  {{ form.non_field_errors }}
+    <div class="mb-3">
+        {{ form.username.errors }}
+        <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username|addclass:'form-control' }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.email.errors }}
+        <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+        {{ form.email|addclass:'form-control' }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.password1.errors }}
+        <label class="form-label" for="{{ form.password1.id_for_label }}">Password</label>
+        {{ form.password1|addclass:'form-control' }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.password2.errors }}
+        <label class="form-label" for="{{ form.password2.id_for_label }}">Confirm Password</label>
+        {{ form.password2|addclass:'form-control' }}
+    </div>
+
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+  {% endif %}
+  <button class="loi-button" type="submit">{% trans "Sign Up" %} &raquo;</button>
+</form>
+
+{% endblock %}

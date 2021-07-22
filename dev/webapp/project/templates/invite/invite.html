@@ -1,0 +1,93 @@
+{% extends 'global/base.html' %}
+{% load static %}
+{% load humanize %}
+{% block headcode %}
+
+<script language="JavaScript">
+
+</script>
+{% endblock %}
+
+{% block content %}
+<style>
+
+.glyphicon {  margin-bottom: 10px;margin-right: 10px;}
+
+.media
+{
+    /*box-shadow:0px 0px 4px -2px #000;*/
+    margin: 20px 0;
+    padding:30px;
+}
+.dp
+{
+    border:10px solid #eee;
+    transition: all 0.2s ease-in-out;
+}
+.dp:hover
+{
+    border:2px solid #eee;
+    transform:rotate(360deg);
+    -ms-transform:rotate(360deg);  
+    -webkit-transform:rotate(360deg);  
+    /*-webkit-font-smoothing:antialiased;*/
+}
+
+</style>
+
+
+
+<div class="row">
+
+    <div class="col-lg-10">
+    {% if object.deal.user.id == request.user.id %}
+    
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> This is your own invite!</h4>
+            <p>Once <strong>{{object.email}}</strong> accepts your invite then completes the registration process, they will be able to <span class="badge badge-primary">{% if object.user_permission %} submit bids on{% else %} view {% endif %}</span> your deal, <strong>{{object.deal.deal_name}}</strong>.</p>
+            <hr>
+            <p class="mb-0">We'll let you know once they signup.</p>
+        </div>
+    
+    {% endif %}
+        <div class="media">
+            <a class="pull-left" href="#" style="margin: 15px;">
+                <img src="{{ user.socialaccount_set.all.0.get_avatar_url }}" class="rounded-circle z-depth-2 img-fluid" data-holder-rendered="true">
+            </a>
+            <div class="media-body">
+                <h4 class="media-heading">{{object.deal.user.first_name}} {{object.deal.user.last_name}}<small> ({{object.deal.user.username}})</small></h4>
+                <h5>Invited you to <span class="badge badge-primary">{% if object.user_permission %} submit bids on{% else %} view {% endif %}</span> their deal, {{object.deal.deal_name}} <br>
+                <small><span class="fa fa-calendar"></span> <em>{{object.created|naturaltime}}</em></small></h5>
+                <hr style="margin:8px auto" class="mt-2">
+                To use our platform, LOIHub, accept the inivation to complete your registeration.
+                <ul class="mt-4">
+                    <li>This invitation is valid for <strong>7 days</strong> from the date it was sent.</li>
+                    <li>This invitation is exclusively for <strong>{{object.email}}</strong>.</li>
+                    <li>Our platform is closed to members only.</li>
+                    <li>We don't share your personal information or bids outside our platform.</li>
+                    <li>Bid information is stored securely and only shared at the discretion of users within our platform.</li>
+                </ul>             
+                <div class="row mt-5">
+                    <div class="col text-center">        
+                        <form action="" method ="get">
+                            {% csrf_token %}
+                            <input type="hidden" name="accept" value="1">
+                            <button type="submit" class="btn btn-success" aria-label="Center Align" {% if object.deal.user.id == request.user.id %} disabled {% endif %}> 
+                                <span class="fa fa-envelope-open" aria-hidden="true"></span> Accept Invitation
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    
+
+</div>
+
+
+
+{% endblock %}

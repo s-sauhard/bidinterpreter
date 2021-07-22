@@ -1,0 +1,61 @@
+{% extends "account/base.html" %}
+
+{% load i18n custom_tags account socialaccount %}
+
+{% block head_title %}{% trans "Sign In" %}{% endblock %}
+
+{% block content %}
+
+    {% get_providers as socialaccount_providers %}
+
+    <form class="socialaccount-form socialaccount-form__login" method="POST" action="{% url 'account_login' %}">
+      {% csrf_token %}
+      <h2>{% trans "Member Login" %}</h2>
+
+        {% if socialaccount_providers %}
+
+            <div class="socialaccount_ballot">
+
+              <ul class="socialaccount_providers">
+                {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+              </ul>
+
+              <div class="m-3 socialaccount__or">{% trans 'or' %}</div>
+
+            </div>
+
+            {% include "socialaccount/snippets/login_extra.html" %}
+
+            {% else %}
+            <p>{% blocktrans %}If you have not created an account yet, then please
+            <a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}</p>
+        {% endif %}
+
+
+      {{ form.non_field_errors }}
+        <div class="mb-3">
+            {{ form.login.errors }}
+            <label class="form-label" for="{{ form.login.id_for_label }}">Username</label>
+            {{ form.login|addclass:'form-control' }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.password.errors }}
+            <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password|addclass:'form-control' }}
+        </div>
+
+      {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+      {% endif %}
+      <button class="loi-button" type="submit">{% trans "Sign In" %}</button>
+      <a class="button secondaryAction" href="{% url 'account_reset_password' %}">
+          <p class="m-3 loi-text__em">{% trans "Forgot Password" %} <i class="fas fa-chevron-right"></i></p>
+      </a>
+
+        <hr/>
+        <a href="{{ signup_url }}"><span class="loi-text__hl">Don't have an account?</span> Sign up</a>
+
+    </form>
+
+{% endblock %}

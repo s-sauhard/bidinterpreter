@@ -1,0 +1,78 @@
+version: "3.5"
+
+services:
+  postgres:
+    container_name: postgres_container
+    build: ./postgres
+    environment:
+      POSTGRES_DB: loihub
+      POSTGRES_USER: loihub
+      POSTGRES_PASSWORD: loihub
+      PGDATA: /data/postgres
+    volumes:
+       - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres
+    restart: unless-stopped
+  
+  # pgadmin:
+  #   container_name: pgadmin_container
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+
+  django:
+    container_name: django
+    # use this for local
+    environment:
+      allowed_hosts: "*"
+      pgsql_host: postgres
+      pgsql_port: 5432
+      pgsql_db: loihub
+      pgsql_user: loihub
+      pgsql_password: loihub 
+    build: 
+      context: ./dev
+      #network: host # for local database connections 
+    ports: 
+      - "8002:8002"
+    volumes:
+      - ./dev/webapp/:/app
+    # use this for local
+    depends_on: 
+      - postgres
+    # networks:
+    #   - postgres
+    restart: unless-stopped
+    tty: true
+
+  ## Totally unecessary
+  django-background:
+    container_name: django-bg
+    environment:
+      pgsql_host: postgres
+      pgsql_port: 5432
+      pgsql_db: loihub
+      pgsql_user: loihub
+      pgsql_password: loihub
+    build: 
+      context: ./dev 
+      dockerfile: Dockerfile-background
+    depends_on: 
+      - django
+      - postgres
+    volumes:
+       - ./dev/webapp/:/app
+    restart: unless-stopped
+    tty: true
+
+volumes:
+    postgres:
+    pgadmin:
+
+networks:
+  postgres:
+    driver: bridge

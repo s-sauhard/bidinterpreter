@@ -1,0 +1,8 @@
+*.pyc
+.idea
+*.env
+.env     # environment specific configurations
+uploads/
+.DS_Store
+node_modules
+

@@ -1,0 +1,90 @@
+{% extends 'global/base.html' %}
+{% load static %}
+
+{% block headcode %}
+    <style>
+        body {
+            padding-top: 5em;
+        }
+        .starter-template {
+            padding: 3rem 1.5rem;
+            text-align: center;
+        }
+    </style>
+{% endblock headcode %}
+
+{% block content %}
+
+    <!-- Filepond -->
+    <main role="main" class="container m-4">
+        <div class="row">
+            <div class="col-md-2"></div>
+            <div class="col-md-8">
+                <h2>Upload Bids</h2>
+                <p class="lead">(PDF format only)
+                </p>
+            </div>
+            <div class="col-md-2"></div>
+        </div>
+        <div class="row">
+            <div class="col-md-2"></div>
+            <div class="col-md-8">
+                <input type="file" class="pond" name="filepond" />
+            </div>
+            <div class="col-md-2"></div>
+        </div>
+    </main><!-- /.container -->
+
+    <!-- Deals -->
+    <ul>
+    {%for d in all_deals%}
+        <li><a href="/bidinterpreter/{{d.pk}}">{{d.deal_name}}</a></li>
+        <li><a href="{% url 'bidinterpreter:index'%}{{d.pk}}">{{d.deal_name}}</a></li>
+    {% endfor %}
+    </ul>
+
+
+    <!-- include jQuery adapter -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+
+    <!-- include FilePond library and plugins -->
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
+    <link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet">
+
+    <script
+        src="https://unpkg.com/filepond-plugin-image-exif-orientation/dist/filepond-plugin-image-exif-orientation.js"></script>
+        <script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+    <script src="https://unpkg.com/filepond/dist/filepond.min.js"></script>
+    <script src="https://unpkg.com/jquery-filepond/filepond.jquery.js"></script>
+    
+    <!-- Configure and initialise Filepond -->
+    <script>
+        // Register the plugin
+        FilePond.registerPlugin(FilePondPluginImageExifOrientation, FilePondPluginImagePreview);
+
+        $(function () {
+            $('.pond').filepond();
+            $('.pond').filepond('allowMultiple', true);
+            $('.pond').filepond.setOptions({
+                instantUpload: false,
+                server: {
+                    url: '/bidinterpreter/upload/',
+                    process: {
+                        method: 'POST',
+                        withCredentials: false,
+                        onload: null,
+                        onerror: null,
+                        ondata: null,
+                    },
+                    fetch: null,
+                    revert: null,
+                },
+                onprocessfile: function (error, file) {
+                    if (error === null)  $('.pond').filepond('removeFile', file);
+                },
+            });
+        });
+    </script>
+{% endblock bodycode %}

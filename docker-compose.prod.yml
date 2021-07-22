@@ -1,0 +1,21 @@
+version: "3.5"
+
+services:
+  django:
+      container_name: django-dev
+      build:
+        context: ./dev
+        dockerfile: Dockerfile
+        network: host
+      ports:
+        - "8002:8002"
+           volumes:
+             - ./dev/webapp/:/app
+           restart: unless-stopped
+           tty: true
+  nginx:
+    build: ./nginx
+    ports:
+      - 1337:80
+    depends_on:
+      - web

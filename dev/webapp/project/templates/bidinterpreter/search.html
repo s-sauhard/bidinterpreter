@@ -1,0 +1,36 @@
+{% extends 'global/base.html' %}
+{% block content %}
+
+    <form method="get" role="form">
+    {% csrf_token %}
+
+        <div class="form-group">
+            <div id="the-basics">
+                <input type="text" placeholder="Deal Name" id="search-form" name="q">
+                <select name="t">
+                    <option>Deals</option>
+                    <option>Bidder</option>
+                    <option>Client</option>
+                </select>
+                <button class="btn btn-primary" type="submit">Search</button>
+            </div>
+        </div>
+    </form>
+
+    {% block extra_js %}
+        <script type="text/javascript">
+            $(function() {
+                $("#search-form").autocomplete({
+                    source: "{% url 'bidinterpreter:search-json' %}",
+                    // minLength: 2,
+                    // open: function(){
+                    //    setTimeout(function () {
+                    //        $('.ui-autocomplete').css('z-index', 99);
+                    //    }, 0);
+                    // }
+                });
+                console.log('everything is still here...', $('#search-form'))
+            });
+        </script>
+    {% endblock extra_js %}
+{% endblock %}

@@ -1,0 +1,53 @@
+
+<div>
+     {% if deal_owner or can_bid %}
+        <a class="loi-button" href="{% url 'bidinterpreter:bid-add' deal %}">
+            <i class="fas fa-plus"></i>
+            New Bid
+        </a>
+     {% endif %}
+</div>
+<nav class="loi-sidebar__nav d-flex flex-column justify-content mt-4 mb-4">
+    <a href="">
+        <span class="material-icons">info</span>
+        Deal Info
+    </a>
+    <a href="{%url 'bidinterpreter:download-csv' deal %}">
+        <span class="material-icons">assignment_returned</span>
+        Download CSV
+    </a>
+    <a href="{%url 'bidinterpreter:download-pdf' deal %}" >
+        <span class="material-icons">picture_as_pdf</span>
+        Download PDF
+    </a>
+    <a href="">
+        <span class="material-icons">people_alt</span>
+        Shared with ()
+    </a>
+</nav>
+
+
+<script src="https://unpkg.com/tus-js-client@latest/dist/tus.js"></script>
+<script src="https://unpkg.com/vue-file-agent@latest/dist/vue-file-agent.umd.js"></script>
+<script type="module" src="/static/js/bidinterpreter/fileupload.js"></script>
+
+<script>
+$(function() {
+
+    $('.delete_bid').on('click', function(e) {
+        var link = $(this).closest('a');
+        e.preventDefault();
+        $('#confirm').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+        .on('click', '#delete', function(e) {
+            window.location = link.attr('href')
+        });
+        $("#cancel").on('click',function(e){
+            e.preventDefault();
+            $('#confirm').modal.model('hide');
+        });
+    });
+});
+</script>

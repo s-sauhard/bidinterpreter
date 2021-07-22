@@ -1,0 +1,272 @@
+{% extends 'global/base.html' %}
+{% load humanize custom_tags %}
+{% block title %}Add a New Bid{% endblock %}
+{% block albums_active %}active{% endblock %}
+{% block content %}
+    <p class="lead"></p>
+    <div id="create-bid" class="container  bootstrap">
+        <div class="row">
+            <div class="col-8">
+
+                <div id="pdf">
+                    <vue-pdf-app
+                            style="height: 100vh;"
+                            pdf="/uploads/{{ pdf_url }}"
+                            @after-created="afterCreatedHandler"
+                            @open="openHandler"
+                            @pages-rendered="pagesRenderedHandler"
+                    ></vue-pdf-app>
+                </div>
+            </div>
+
+            <div class="col-4">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <div class="col-sm-offset-2 card-body bg-light">
+
+                            <!-- Sometimes errors happen with hidden fields so it's nice to be able to see them here. Leaving these references here but surpessing display so we can at least catch obscure problems by viewing source.  -->
+                            {% for field in form %}
+                                <!-- <div class="fieldWrapper"> -->
+                                {% if field.errors %}
+                                    <!-- <h5>Please edit the form</h5> -->
+                                    <!-- {{ field.label_tag }} -->
+                                    <!-- {{ field.errors }} -->
+                                {% endif %}
+                                <!--  </div> -->
+                            {% endfor %}
+
+
+                            <form class="form-horizontal bidinterpreter-form" id="main-form"
+                                  @submit.prevent="processForm" role="form" action="" method="post"
+                                  enctype="multipart/form-data">
+                                {% if update %}
+                                    <h2><i class="fas fa-gavel"></i><small class="text-muted"> Editing Bid for: <a
+                                            href="{% url 'bidinterpreter:detail' deal_id %}">{{ deal_name }}</a></h2>
+                                {% else %}
+                                    <h2><i class="fas fa-gavel"></i><small class="text-muted"> Add a New Bid - <a
+                                            href="{% url 'bidinterpreter:detail' deal_id %}">{{ deal_name }}</a></small>
+                                    </h2>
+                                {% endif %}
+
+                                {% if document_import %}
+                                    <div class="row shadow p-2 mb-5 bg-dark rounded mx-auto">
+                                        <div class="col-xs-12 col-md-2 text-center text-light text-sm">
+                                            <h1><i class="fa fa-file-pdf" aria-hidden="true"></i></h1>
+                                        </div>
+                                        <div class="col-xs-12 col-md-10 text-light text-sm">
+                                            <small class="">
+                                                <strong>{{ original_document_name }}</strong>
+                                                <p><em>{{ datetime|naturaltime }}</em></p>
+                                            </small>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if error_message %}
+                                    <p><strong>{{ error_message }}</strong></p>
+                                {% endif %}
+                                {% csrf_token %}
+                                <input type="hidden" name="deal_id" value="{{ deal_id }}">
+                                {% include 'global/form_template.html' %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Right Bid Info -->
+    </div>
+    </div>
+
+{% endblock %}
+
+{% block additional_js %}
+    <link rel="stylesheet" href="https://unpkg.com/vue-pdf-app@2.0.0/dist/icons/main.css">
+    <script src="https://unpkg.com/vue-pdf-app"></script>
+    <script src="/static/js/bidinterpreter/forms.js"></script>
+    <script>
+
+        let entities = {{entities}};
+        let entity_map = {
+            dd: "due_diligence",
+            closing: "closing",
+            deposit: "deposit",
+            purchaseprice: "purchase_price"
+        }
+
+        {#console.log('matches', word_coords);#}
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function update(x, y, l, h, c) {
+            const page = document.querySelector("canvas[aria-label='Page 1']");
+            const ctx = page.getContext('2d');
+            ctx.strokeRect(x * c, y * c, l, h);
+        }
+
+        var pdfvue
+        $(function () {
+            console.log('Init the vue component', )
+            const nf = new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'});
+
+            pdfvue = new Vue({
+                components: {
+                    VuePdfApp: window["vue-pdf-app"]
+                },
+                updated: function () {
+                    var ref = this
+                    this.$nextTick(function () {
+                        console.log("updated:",)
+                        console.log(document.querySelector('canvas'));
+                    })
+                },
+                mounted: function () {
+                    // this doesn't work post-render -- need to get reference to canvas once it exists
+                    // this.$nextTick(function () {
+                    //     var page = document.querySelector("canvas[aria-label='Page 1']");
+                    //     console.log("page is", page);
+                    //     console.log(document.querySelector('canvas'));
+                    // });
+
+                    // going to use this hack instead -- there must be a better way:  Check here - https://github.com/sandanat/vue-pdf-app/blob/master/examples/the-most-complete-example/src/views/PdfjsInteraction.vue
+                    setTimeout(function () {
+                        // prototype canvas svg bounding boxes
+
+
+
+                        // there are separate canvases for each page -- the pytesseract data assumes the entire document as a single coordinate system
+                        // Therefore, we will only be getting the first page of entities.
+                        {#const page = document.querySelector("canvas[aria-label='Page 1']");#}
+                        {#const ctx = page.getContext('2d');#}
+
+
+                    }, 500)
+   
+                },
+                methods: {
+
+                    afterCreatedHandler(pdfApp) {
+                        // to prevent browser tab title changing to pdf document name
+                        pdfApp.isViewerEmbedded = true;
+                        setTimeout(() => {
+                            Object.entries(entities).forEach(([entity, page]) => {
+                                var el = document.getElementById(`id_${entity_map[entity]}`);
+                                el.addEventListener("click", (event) => {
+                                    pdfApp.page = page
+                                })
+                            });
+                        }, 500);
+                        
+                    },
+                    async openHandler(pdfApp) {
+                        this.info = [];
+                        const info = await pdfApp.pdfDocument
+                            .getMetadata()
+                            .catch(console.error.bind(console));
+
+                        if (!info) return;
+                        console.log(info);
+                        const props = Object.keys(info.info);
+                        props.forEach((prop) => {
+                            const obj = {
+                                name: prop,
+                                value: info.info[prop],
+                            };
+                            this.info.push(obj);
+                        });
+                    },
+                    pagesRenderedHandler(pdfApp) {
+                        setTimeout(() => (
+                            pdfApp.pdfViewer.currentScaleValue = 1));
+                        
+                    },
+                }
+            }).$mount('#pdf')
+
+
+            const FormComponent = Vue.extend({
+                el: '#main-form',
+                data: {
+                    company_name: "",
+                    purchase_price: "",
+                    deposit: "",
+                    due_diligence: "",
+                    closing: ""
+                },
+                watch: {
+                    purchase_price: function (newValue) {
+                        const result = newValue.replace(".00", "").replace(/\D/g, '')
+                        const formatCurrency = nf.format(parseFloat(result));
+                        Vue.nextTick(() => this.purchase_price = formatCurrency);
+                    }
+                },
+                methods: {
+                    checkForm: function (e) {
+
+                    },
+                    processForm: function () {
+
+                    }
+                }
+            })
+
+
+            // conver type to text, overriding django-money's handling
+            const purchasePrice = document.querySelector('#id_purchase_price')
+            purchasePrice.type = "text"
+
+
+            // remove specific characters while typing
+
+            let formatNumber = function (event) {
+                if (event.target.value.length < 4) {
+                    return
+                }
+                console.log("event firing", event.target.value)
+                event.target.value = event.target.value.replace(".00", "").replace(/\D/g, '');
+                event.target.value = nf.format(parseFloat(event.target.value));
+            }
+
+            let formElements = ['purchase_price', 'deposit']
+            formElements.map(key => {
+                let element = document.querySelector(`#id_${key}`);
+                console.log("eleemtn:", element)
+                element.addEventListener('keyup', (event) => {
+                    event.target.value = event.target.value.replace(/[^0-9$.,]/g, '')
+                });
+                element.addEventListener('blur', (event) => formatNumber(event));
+
+                // update the form items on page load 1x
+                if (element.value != "") {
+                    element.value = element.value.replace(/[^0-9$.,]/g, '')
+                    element.value = element.value.replace(/\D/g, '');
+                    element.value = nf.format(parseFloat(element.value));
+                }
+            });
+
+            var submit = document.querySelector("button[type='submit']")
+            let form = $("#main-form")[0]
+
+            submit.addEventListener('click', event => {
+                formElements.map(key => {
+                    // Kind of a hack but changes the formatted input back to regular inputs
+                    let element = document.querySelector(`#id_${key}`);
+                    element.value = element.value.replace(/[$,]/g, '')
+                })
+
+                // Check if form valid -- prevent double submit
+                if (form.checkValidity()) {
+                    submit.disabled = true;
+                    form.submit();
+                } else {
+                    submit.disabled = false;
+                }
+
+            });
+            //
+            // purchase_price.val(nf.format(purchase_price.val()))
+        })
+    </script>
+{% endblock %}

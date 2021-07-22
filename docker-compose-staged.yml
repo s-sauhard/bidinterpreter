@@ -1,0 +1,24 @@
+version: "3.5"
+
+services:
+  django:
+    container_name: django
+    build: ./dev 
+    ports: 
+      - "8002:8002"
+    volumes:
+      - ./dev/webapp/:/app
+    restart: unless-stopped
+    tty: true
+
+  django-background:
+    container_name: django-bg
+    build: 
+      context: ./dev 
+      dockerfile: Dockerfile-background
+    depends_on: 
+      - django
+    volumes:
+      - ./dev/webapp/:/app
+    restart: unless-stopped
+    tty: true
